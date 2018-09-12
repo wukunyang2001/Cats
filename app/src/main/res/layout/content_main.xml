@@ -9,9 +9,8 @@
     tools:showIn="@layout/activity_main">
 
     <pl.droidsonroids.gif.GifImageView
+        android:id="@+id/gif"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/giphy"
-        android:src="@drawable/giphy" />
+        android:layout_height="wrap_content" />
 
 </android.support.constraint.ConstraintLayout>
