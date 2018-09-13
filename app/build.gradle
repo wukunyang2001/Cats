@@ -5,6 +5,7 @@ android {
     defaultConfig {
         applicationId "com.example.cats"
         minSdkVersion 15
+        //noinspection OldTargetApi
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"

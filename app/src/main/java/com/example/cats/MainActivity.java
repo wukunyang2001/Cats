@@ -39,8 +39,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setIcon(R.drawable.baseline_pets_white_36);
+        if(getSupportActionBar() != null){
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+            getSupportActionBar().setIcon(R.drawable.baseline_pets_white_36);
+
+        }
 
         gifImageView = findViewById(R.id.gif);
 
