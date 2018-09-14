@@ -1,7 +1,9 @@
 package com.example.cats;
 
-import android.annotation.SuppressLint;
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -10,23 +12,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.schedulers.Schedulers;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String url = "https://api.thecatapi.com/v1/images/search?format=src&mime_types=image/gif";
+    private MainViewModel mainViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,48 +41,15 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        getGif(url);
+        mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        mainViewModel.getGifStored().observe(this, new Observer<GifDrawable>() {
+            @Override
+            public void onChanged(@Nullable GifDrawable gifDrawable) {
+                GifImageView gifImageView = findViewById(R.id.gif);
+                gifImageView.setImageDrawable(gifDrawable);
+            }
+        });
 
-    }
-
-    @SuppressLint("CheckResult")
-    private void getGif(final String url){
-        io.reactivex.Observable
-                .create(new ObservableOnSubscribe<InputStream>() {
-
-                    @Override
-                    public void subscribe(ObservableEmitter<InputStream> emitter) throws Exception {
-                        HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(url).openConnection();
-                        httpURLConnection.setRequestProperty("x-api-key", "dcea80f2-ef1b-4d60-8252-332b2cc946ce");
-                        httpURLConnection.connect();
-                        emitter.onNext(httpURLConnection.getInputStream());
-                    }
-                })
-                .map(new Function<InputStream, GifDrawable>() {
-                    @Override
-                    public GifDrawable apply(InputStream inputStream) throws Exception {
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-                        int nRead;
-                        byte[] data = new byte[16384];
-
-                        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                            buffer.write(data, 0, nRead);
-                        }
-
-                        buffer.flush();
-                        return new GifDrawable(buffer.toByteArray());
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(new Consumer<GifDrawable>() {
-                    @Override
-                    public void accept(GifDrawable gifDrawable) {
-                        GifImageView gifImageView = findViewById(R.id.gif);
-                        gifImageView.setImageDrawable(gifDrawable);
-                    }
-                });
     }
 
     @Override
@@ -104,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
             case R.id.action_refresh:
-                getGif(url);
+                mainViewModel.getGif();
                 return true;
             case R.id.action_settings:
                 return true;
