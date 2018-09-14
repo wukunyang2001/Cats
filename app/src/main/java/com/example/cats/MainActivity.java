@@ -18,6 +18,7 @@ import pl.droidsonroids.gif.GifImageView;
 public class MainActivity extends AppCompatActivity {
 
     private MainViewModel mainViewModel;
+    private GifImageView gifImageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,11 +42,12 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        gifImageView = findViewById(R.id.gif);
+
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
         mainViewModel.getGifStored().observe(this, new Observer<GifDrawable>() {
             @Override
             public void onChanged(@Nullable GifDrawable gifDrawable) {
-                GifImageView gifImageView = findViewById(R.id.gif);
                 gifImageView.setImageDrawable(gifDrawable);
             }
         });
@@ -67,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_settings:
                 return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 }
