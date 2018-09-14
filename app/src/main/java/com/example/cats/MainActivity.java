@@ -1,6 +1,6 @@
 package com.example.cats;
 
-import android.os.AsyncTask;
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -11,17 +11,22 @@ import android.view.MenuItem;
 import android.view.View;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static GifImageView gifImageView;
+    private String url = "https://api.thecatapi.com/v1/images/search?format=src&mime_types=image/gif";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,61 +50,61 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        gifImageView = findViewById(R.id.gif);
-
-        new GifAsyncTask().execute("https://api.thecatapi.com/v1/images/search?format=src&mime_types=image/gif");
+        getGif(url);
 
     }
 
-    private static class GifAsyncTask extends AsyncTask<String, Void, GifDrawable>{
+    @SuppressLint("CheckResult")
+    private void getGif(final String url){
+        io.reactivex.Observable
+                .create(new ObservableOnSubscribe<InputStream>() {
 
-        @Override
-        protected GifDrawable doInBackground(String... strings) {
-            GifDrawable gifDrawable = null;
-            try {
-                HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(strings[0]).openConnection();
-                httpURLConnection.setRequestProperty("x-api-key", "dcea80f2-ef1b-4d60-8252-332b2cc946ce");
-                httpURLConnection.connect();
-                InputStream inputStream = httpURLConnection.getInputStream();
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    @Override
+                    public void subscribe(ObservableEmitter<InputStream> emitter) throws Exception {
+                        HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(url).openConnection();
+                        httpURLConnection.setRequestProperty("x-api-key", "dcea80f2-ef1b-4d60-8252-332b2cc946ce");
+                        httpURLConnection.connect();
+                        emitter.onNext(httpURLConnection.getInputStream());
+                    }
+                })
+                .map(new Function<InputStream, GifDrawable>() {
+                    @Override
+                    public GifDrawable apply(InputStream inputStream) throws Exception {
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
-                int nRead;
-                byte[] data = new byte[16384];
+                        int nRead;
+                        byte[] data = new byte[16384];
 
-                while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                    buffer.write(data, 0, nRead);
-                }
+                        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                            buffer.write(data, 0, nRead);
+                        }
 
-                buffer.flush();
-                gifDrawable = new GifDrawable(buffer.toByteArray());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return gifDrawable;
-        }
-
-        @Override
-        protected void onPostExecute(GifDrawable gifDrawable) {
-            super.onPostExecute(gifDrawable);
-            gifImageView.setImageDrawable(gifDrawable);
-        }
+                        buffer.flush();
+                        return new GifDrawable(buffer.toByteArray());
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<GifDrawable>() {
+                    @Override
+                    public void accept(GifDrawable gifDrawable) {
+                        GifImageView gifImageView = findViewById(R.id.gif);
+                        gifImageView.setImageDrawable(gifDrawable);
+                    }
+                });
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()){
             case R.id.action_refresh:
-                new GifAsyncTask().execute("https://api.thecatapi.com/v1/images/search?format=src&mime_types=image/gif");
+                getGif(url);
                 return true;
             case R.id.action_settings:
                 return true;
