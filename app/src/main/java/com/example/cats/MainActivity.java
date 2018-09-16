@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
                 return true;
             case R.id.action_share:
-                shareGif();
+                MainActivityPermissionsDispatcher.shareGifWithPermissionCheck(this);
                 return true;
         }
         return super.onOptionsItemSelected(item);
