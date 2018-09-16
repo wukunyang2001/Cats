@@ -1,8 +1,13 @@
 package com.example.cats;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -10,12 +15,25 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
+import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
+import io.reactivex.SingleOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
+import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.RuntimePermissions;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
+@RuntimePermissions
 public class MainActivity extends AppCompatActivity {
 
     private MainViewModel mainViewModel;
@@ -73,7 +91,48 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.action_settings:
                 return true;
+            case R.id.action_download:
+                MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
+
+    @SuppressLint("CheckResult")
+    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void saveGif(){
+        Single
+                .create(new SingleOnSubscribe<Boolean>() {
+
+                    @SuppressWarnings("ResultOfMethodCallIgnored")
+                    @Override
+                    public void subscribe(SingleEmitter<Boolean> emitter) throws Exception {
+                        byte[] gifByte = mainViewModel.getGifStored().getValue();
+                        File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
+                        if(!dir.exists())dir.mkdir();
+                        File file = new File(dir, String.format(Locale.CHINA, "%d.gif", System.currentTimeMillis()));
+                        file.createNewFile();
+                        FileOutputStream fileOutputStream = new FileOutputStream(file);
+                        if (gifByte != null) {
+                            fileOutputStream.write(gifByte);
+                        }
+                        Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                        intent.setData(Uri.fromFile(file));
+                        getApplicationContext().sendBroadcast(intent);
+                        fileOutputStream.close();
+                        emitter.onSuccess(true);
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<Boolean>() {
+                    @Override
+                    public void accept(Boolean success) {
+                        if(success) Toast.makeText(MainActivity.this, "Gif saved!", Toast.LENGTH_SHORT).show();
+                        else Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
 }

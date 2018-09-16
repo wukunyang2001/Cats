@@ -5,10 +5,16 @@
     <item
         android:id="@+id/action_refresh"
         android:icon="@drawable/round_refresh_white_36dp"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom"
+        android:title="" />
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/action_settings"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_download"
+        android:icon="@drawable/round_save_alt_white_36dp"
+        app:showAsAction="ifRoom"
+        android:title="" />
 </menu>
