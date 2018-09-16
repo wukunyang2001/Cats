@@ -1,9 +1,15 @@
 package com.example.cats;
 
 import android.annotation.SuppressLint;
+import android.app.Application;
+import android.arch.lifecycle.AndroidViewModel;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
-import android.arch.lifecycle.ViewModel;
+import android.support.annotation.NonNull;
+
+import com.example.cats.database.Cat;
+import com.example.cats.database.CatDao;
+import com.example.cats.database.CatDatabase;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -18,18 +24,20 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
-public class MainViewModel extends ViewModel {
-
-    private MutableLiveData<byte[]> gifStored;
+public class MainViewModel extends AndroidViewModel {
 
     private MutableLiveData<Boolean> isLoading;
+    private CatDao catDao;
+    private LiveData<Cat> catLiveData;
 
-    public LiveData<byte[]> getGifStored() {
-        if(gifStored == null){
-            gifStored = new MutableLiveData<>();
-            getGif();
-        }
-        return gifStored;
+    public MainViewModel(@NonNull Application application) {
+        super(application);
+        catDao = CatDatabase.getDatabase(application).catDao();
+        catLiveData = catDao.query();
+    }
+
+    public LiveData<Cat> getCatLiveData() {
+        return catLiveData;
     }
 
     @SuppressLint("CheckResult")
@@ -47,9 +55,9 @@ public class MainViewModel extends ViewModel {
                         emitter.onSuccess(httpURLConnection.getInputStream());
                     }
                 })
-                .map(new Function<InputStream, byte[]>() {
+                .map(new Function<InputStream, Boolean>() {
                     @Override
-                    public byte[] apply(InputStream inputStream) throws Exception {
+                    public Boolean apply(InputStream inputStream) throws Exception {
                         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
                         int nRead;
@@ -60,15 +68,21 @@ public class MainViewModel extends ViewModel {
                         }
 
                         buffer.flush();
-                        return buffer.toByteArray();
+
+                        catDao.delete();
+                        catDao.insert(new Cat(buffer.toByteArray()));
+
+                        buffer.close();
+                        inputStream.close();
+
+                        return true;
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(new Consumer<byte[]>() {
+                .subscribe(new Consumer<Boolean>() {
                     @Override
-                    public void accept(byte[] bytes) {
-                        gifStored.setValue(bytes);
+                    public void accept(Boolean success) {
                         isLoading.setValue(false);
                     }
                 });
@@ -77,7 +91,7 @@ public class MainViewModel extends ViewModel {
     public LiveData<Boolean> getIsLoading(){
         if(isLoading == null){
             isLoading = new MutableLiveData<>();
-            isLoading.setValue(true);
+            isLoading.setValue(false);
         }
         return isLoading;
     }

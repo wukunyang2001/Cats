@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -17,6 +18,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import com.example.cats.database.Cat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -68,11 +71,12 @@ public class MainActivity extends AppCompatActivity {
                 else progressBar.setVisibility(ProgressBar.GONE);
             }
         });
-        mainViewModel.getGifStored().observe(this, new Observer<byte[]>() {
+        mainViewModel.getCatLiveData().observe(this, new Observer<Cat>() {
             @Override
-            public void onChanged(byte[] bytes) {
+            public void onChanged(@Nullable Cat cat) {
                 try {
-                    gifImageView.setImageDrawable(new GifDrawable(bytes));
+                    if(cat == null) mainViewModel.getGif();
+                    else gifImageView.setImageDrawable(new GifDrawable(cat.catGif));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -114,15 +118,15 @@ public class MainActivity extends AppCompatActivity {
                     @SuppressWarnings("ResultOfMethodCallIgnored")
                     @Override
                     public void subscribe(SingleEmitter<Boolean> emitter) throws Exception {
-                        byte[] gifByte = mainViewModel.getGifStored().getValue();
+                        Cat cat = mainViewModel.getCatLiveData().getValue();
+                        if(cat == null) return;
+                        byte[] gifByte = cat.catGif;
                         File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
                         if(!dir.exists())dir.mkdir();
                         File file = new File(dir, String.format(Locale.CHINA, "%d.gif", System.currentTimeMillis()));
                         file.createNewFile();
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
-                        if (gifByte != null) {
-                            fileOutputStream.write(gifByte);
-                        }
+                        fileOutputStream.write(gifByte);
                         Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
                         intent.setData(Uri.fromFile(file));
                         getApplicationContext().sendBroadcast(intent);
@@ -151,15 +155,15 @@ public class MainActivity extends AppCompatActivity {
                     @SuppressWarnings("ResultOfMethodCallIgnored")
                     @Override
                     public void subscribe(SingleEmitter<File> emitter) throws Exception {
-                        byte[] gifByte = mainViewModel.getGifStored().getValue();
+                        Cat cat = mainViewModel.getCatLiveData().getValue();
+                        if(cat == null) return;
+                        byte[] gifByte = cat.catGif;
                         File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
                         if(!dir.exists())dir.mkdir();
                         File file = new File(dir, "temp_to_share.gif");
                         file.createNewFile();
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
-                        if (gifByte != null) {
-                            fileOutputStream.write(gifByte);
-                        }
+                        fileOutputStream.write(gifByte);
                         Intent intent = new Intent(Intent.ACTION_SEND);
                         intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
                         intent.setType("image/gif");
