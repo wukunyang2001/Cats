@@ -75,8 +75,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChanged(@Nullable Cat cat) {
                 try {
-                    if(cat == null) mainViewModel.getGif();
-                    else gifImageView.setImageDrawable(new GifDrawable(cat.catGif));
+                    if(cat != null) gifImageView.setImageDrawable(new GifDrawable(cat.catGif));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
