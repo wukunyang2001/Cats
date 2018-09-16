@@ -5,8 +5,8 @@
     <item
         android:id="@+id/action_refresh"
         android:icon="@drawable/round_refresh_white_36dp"
-        app:showAsAction="ifRoom"
-        android:title="" />
+        android:title=""
+        app:showAsAction="always" />
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
@@ -15,6 +15,11 @@
     <item
         android:id="@+id/action_download"
         android:icon="@drawable/round_save_alt_white_36dp"
-        app:showAsAction="ifRoom"
-        android:title="" />
+        android:title=""
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_share"
+        android:icon="@drawable/round_share_white_36dp"
+        android:title=""
+        app:showAsAction="always" />
 </menu>

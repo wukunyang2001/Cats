@@ -55,12 +55,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if(getSupportActionBar() != null){
-            getSupportActionBar().setDisplayShowHomeEnabled(true);
-            getSupportActionBar().setIcon(R.drawable.baseline_pets_white_36);
-
-        }
-
         gifImageView = findViewById(R.id.gif);
 
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
@@ -93,6 +87,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.action_download:
                 MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
+                return true;
+            case R.id.action_share:
+                shareGif();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -133,6 +130,39 @@ public class MainActivity extends AppCompatActivity {
                         else Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    @SuppressLint("CheckResult")
+    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void shareGif(){
+        Single
+                .create(new SingleOnSubscribe<File>() {
+
+                    @SuppressWarnings("ResultOfMethodCallIgnored")
+                    @Override
+                    public void subscribe(SingleEmitter<File> emitter) throws Exception {
+                        byte[] gifByte = mainViewModel.getGifStored().getValue();
+                        File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
+                        if(!dir.exists())dir.mkdir();
+                        File file = new File(dir, "temp_to_share.gif");
+                        file.createNewFile();
+                        FileOutputStream fileOutputStream = new FileOutputStream(file);
+                        if (gifByte != null) {
+                            fileOutputStream.write(gifByte);
+                        }
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+                        intent.setType("image/gif");
+                        startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
+                        fileOutputStream.close();
+                        emitter.onSuccess(file);
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe();
+
     }
 
 }
