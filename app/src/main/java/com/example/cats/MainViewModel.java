@@ -22,6 +22,8 @@ public class MainViewModel extends ViewModel {
 
     private MutableLiveData<byte[]> gifStored;
 
+    private MutableLiveData<Boolean> isLoading;
+
     public LiveData<byte[]> getGifStored() {
         if(gifStored == null){
             gifStored = new MutableLiveData<>();
@@ -32,6 +34,7 @@ public class MainViewModel extends ViewModel {
 
     @SuppressLint("CheckResult")
     public void getGif(){
+        isLoading.setValue(true);
         Single
                 .create(new SingleOnSubscribe<InputStream>(){
 
@@ -66,7 +69,17 @@ public class MainViewModel extends ViewModel {
                     @Override
                     public void accept(byte[] bytes) {
                         gifStored.setValue(bytes);
+                        isLoading.setValue(false);
                     }
                 });
     }
+
+    public LiveData<Boolean> getIsLoading(){
+        if(isLoading == null){
+            isLoading = new MutableLiveData<>();
+            isLoading.setValue(true);
+        }
+        return isLoading;
+    }
+
 }

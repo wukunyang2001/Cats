@@ -15,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.io.File;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MainViewModel mainViewModel;
     private GifImageView gifImageView;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,8 +58,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
         gifImageView = findViewById(R.id.gif);
+        progressBar = findViewById(R.id.progressBar);
 
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        mainViewModel.getIsLoading().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean visible) {
+                if(visible) progressBar.setVisibility(ProgressBar.VISIBLE);
+                else progressBar.setVisibility(ProgressBar.GONE);
+            }
+        });
         mainViewModel.getGifStored().observe(this, new Observer<byte[]>() {
             @Override
             public void onChanged(byte[] bytes) {
@@ -68,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
     }
 
     @Override
