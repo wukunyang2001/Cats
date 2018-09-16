@@ -17,13 +17,12 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import pl.droidsonroids.gif.GifDrawable;
 
 public class MainViewModel extends ViewModel {
 
-    private MutableLiveData<GifDrawable> gifStored;
+    private MutableLiveData<byte[]> gifStored;
 
-    public LiveData<GifDrawable> getGifStored() {
+    public LiveData<byte[]> getGifStored() {
         if(gifStored == null){
             gifStored = new MutableLiveData<>();
             getGif();
@@ -45,9 +44,9 @@ public class MainViewModel extends ViewModel {
                         emitter.onSuccess(httpURLConnection.getInputStream());
                     }
                 })
-                .map(new Function<InputStream, GifDrawable>() {
+                .map(new Function<InputStream, byte[]>() {
                     @Override
-                    public GifDrawable apply(InputStream inputStream) throws Exception {
+                    public byte[] apply(InputStream inputStream) throws Exception {
                         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
                         int nRead;
@@ -58,18 +57,16 @@ public class MainViewModel extends ViewModel {
                         }
 
                         buffer.flush();
-                        return new GifDrawable(buffer.toByteArray());
+                        return buffer.toByteArray();
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(new Consumer<GifDrawable>() {
+                .subscribe(new Consumer<byte[]>() {
                     @Override
-                    public void accept(GifDrawable gifDrawable) {
-                        gifStored.setValue(gifDrawable);
+                    public void accept(byte[] bytes) {
+                        gifStored.setValue(bytes);
                     }
                 });
     }
-
-
 }

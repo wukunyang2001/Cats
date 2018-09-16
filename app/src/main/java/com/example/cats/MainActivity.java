@@ -3,7 +3,6 @@ package com.example.cats;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -11,6 +10,8 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+
+import java.io.IOException;
 
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
@@ -45,10 +46,14 @@ public class MainActivity extends AppCompatActivity {
         gifImageView = findViewById(R.id.gif);
 
         mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-        mainViewModel.getGifStored().observe(this, new Observer<GifDrawable>() {
+        mainViewModel.getGifStored().observe(this, new Observer<byte[]>() {
             @Override
-            public void onChanged(@Nullable GifDrawable gifDrawable) {
-                gifImageView.setImageDrawable(gifDrawable);
+            public void onChanged(byte[] bytes) {
+                try {
+                    gifImageView.setImageDrawable(new GifDrawable(bytes));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
