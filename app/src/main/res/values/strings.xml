@@ -4,6 +4,5 @@
     <string name="action_share">Share Gif to:</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_save">Save</string>
-    <string name="action_copy">Copy</string>
     <string name="context_share">Share</string>
 </resources>

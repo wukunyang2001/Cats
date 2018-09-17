@@ -4,8 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -13,6 +11,7 @@ import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.ContextMenu;
@@ -46,7 +45,6 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel mainViewModel;
     private GifImageView gifImageView;
     private ProgressBar progressBar;
-    private ClipboardManager clipboardManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         registerForContextMenu(gifImageView);
-        clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
 
     }
 
@@ -109,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
                 return true;
             case R.id.action_share:
-                MainActivityPermissionsDispatcher.shareGifWithPermissionCheck(this);
+                shareGif();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -153,8 +150,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("CheckResult")
-    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE})
     void shareGif(){
         Single
                 .create(new SingleOnSubscribe<Uri>() {
@@ -165,15 +160,16 @@ public class MainActivity extends AppCompatActivity {
                         Cat cat = mainViewModel.getCatLiveData().getValue();
                         if(cat == null) return;
                         byte[] gifByte = cat.catGif;
-                        File file = new File(Environment.getExternalStorageDirectory(), "/cat/share");
-                        if(!file.exists()) file.mkdirs();
+                        File file = new File(getFilesDir(), "temp_to_share");
+                        if(!file.exists()) file.mkdir();
                         file = new File(file, "temp_to_share.gif");
                         if(file.exists()) file.delete();
                         file.createNewFile();
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
                         fileOutputStream.write(gifByte);
                         fileOutputStream.close();
-                        emitter.onSuccess(Uri.fromFile(file));
+                        Uri uri = FileProvider.getUriForFile(getApplicationContext(), "com.example.fileprovider", file);
+                        emitter.onSuccess(uri);
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
@@ -185,37 +181,6 @@ public class MainActivity extends AppCompatActivity {
                         intent.putExtra(Intent.EXTRA_STREAM, uri);
                         intent.setType("image/gif");
                         startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
-                    }
-                });
-    }
-
-    @SuppressLint("CheckResult")
-    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE})
-    void copyGif(){
-        Single
-                .create(new SingleOnSubscribe<File>() {
-
-                    @SuppressWarnings("ResultOfMethodCallIgnored")
-                    @Override
-                    public void subscribe(SingleEmitter<File> emitter) throws Exception {
-                        Cat cat = mainViewModel.getCatLiveData().getValue();
-                        if(cat == null) return;
-                        byte[] gifByte = cat.catGif;
-                        File file = File.createTempFile("temp_to_copy", "gif");
-                        FileOutputStream fileOutputStream = new FileOutputStream(file);
-                        fileOutputStream.write(gifByte);
-                        fileOutputStream.close();
-                        emitter.onSuccess(file);
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(new Consumer<File>() {
-                    @Override
-                    public void accept(File file) {
-                        ClipData clipData = ClipData.newRawUri("URI", Uri.fromFile(file));
-                        clipboardManager.setPrimaryClip(clipData);
                     }
                 });
     }
@@ -236,10 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
                 return true;
             case R.id.context_share:
-                MainActivityPermissionsDispatcher.shareGifWithPermissionCheck(this);
-                return true;
-            case R.id.context_copy:
-                MainActivityPermissionsDispatcher.copyGifWithPermissionCheck(this);
+                shareGif();
                 return true;
         }
         return super.onContextItemSelected(item);

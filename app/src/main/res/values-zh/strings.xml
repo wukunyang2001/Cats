@@ -5,6 +5,5 @@
     <string name="action_share">分享GIF给：</string>
     <string name="action_refresh">刷新</string>
     <string name="action_save">保存</string>
-    <string name="action_copy">复制</string>
     <string name="context_share">分享</string>
 </resources>
