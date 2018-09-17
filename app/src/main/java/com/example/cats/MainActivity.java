@@ -4,6 +4,8 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -43,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel mainViewModel;
     private GifImageView gifImageView;
     private ProgressBar progressBar;
+    private ClipboardManager clipboardManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +85,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        registerForContextMenu(gifImageView);
+        clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+
     }
 
     @Override
@@ -149,11 +157,11 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.WRITE_EXTERNAL_STORAGE})
     void shareGif(){
         Single
-                .create(new SingleOnSubscribe<File>() {
+                .create(new SingleOnSubscribe<Uri>() {
 
                     @SuppressWarnings("ResultOfMethodCallIgnored")
                     @Override
-                    public void subscribe(SingleEmitter<File> emitter) throws Exception {
+                    public void subscribe(SingleEmitter<Uri> emitter) throws Exception {
                         Cat cat = mainViewModel.getCatLiveData().getValue();
                         if(cat == null) return;
                         byte[] gifByte = cat.catGif;
@@ -165,6 +173,39 @@ public class MainActivity extends AppCompatActivity {
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
                         fileOutputStream.write(gifByte);
                         fileOutputStream.close();
+                        emitter.onSuccess(Uri.fromFile(file));
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<Uri>() {
+                    @Override
+                    public void accept(Uri uri) {
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.putExtra(Intent.EXTRA_STREAM, uri);
+                        intent.setType("image/gif");
+                        startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
+                    }
+                });
+    }
+
+    @SuppressLint("CheckResult")
+    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void copyGif(){
+        Single
+                .create(new SingleOnSubscribe<File>() {
+
+                    @SuppressWarnings("ResultOfMethodCallIgnored")
+                    @Override
+                    public void subscribe(SingleEmitter<File> emitter) throws Exception {
+                        Cat cat = mainViewModel.getCatLiveData().getValue();
+                        if(cat == null) return;
+                        byte[] gifByte = cat.catGif;
+                        File file = File.createTempFile("temp_to_copy", "gif");
+                        FileOutputStream fileOutputStream = new FileOutputStream(file);
+                        fileOutputStream.write(gifByte);
+                        fileOutputStream.close();
                         emitter.onSuccess(file);
                     }
                 })
@@ -173,12 +214,35 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(new Consumer<File>() {
                     @Override
                     public void accept(File file) {
-                        Intent intent = new Intent(Intent.ACTION_SEND);
-                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-                        intent.setType("image/gif");
-                        startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
+                        ClipData clipData = ClipData.newRawUri("URI", Uri.fromFile(file));
+                        clipboardManager.setPrimaryClip(clipData);
                     }
                 });
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        getMenuInflater().inflate(R.menu.menu_context_main, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.context_refresh:
+                mainViewModel.getGif();
+                return true;
+            case R.id.context_save:
+                MainActivityPermissionsDispatcher.saveGifWithPermissionCheck(this);
+                return true;
+            case R.id.context_share:
+                MainActivityPermissionsDispatcher.shareGifWithPermissionCheck(this);
+                return true;
+            case R.id.context_copy:
+                MainActivityPermissionsDispatcher.copyGifWithPermissionCheck(this);
+                return true;
+        }
+        return super.onContextItemSelected(item);
     }
 
 }
