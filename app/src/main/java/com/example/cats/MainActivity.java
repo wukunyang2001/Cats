@@ -120,9 +120,9 @@ public class MainActivity extends AppCompatActivity {
                         Cat cat = mainViewModel.getCatLiveData().getValue();
                         if(cat == null) return;
                         byte[] gifByte = cat.catGif;
-                        File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
-                        if(!dir.exists())dir.mkdir();
-                        File file = new File(dir, String.format(Locale.CHINA, "%d.gif", System.currentTimeMillis()));
+                        File file = new File(Environment.getExternalStorageDirectory(), "/cat");
+                        if(!file.exists())file.mkdir();
+                        file = new File(file, String.format(Locale.CHINA, "%d.gif", System.currentTimeMillis()));
                         file.createNewFile();
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
                         fileOutputStream.write(gifByte);
@@ -157,24 +157,28 @@ public class MainActivity extends AppCompatActivity {
                         Cat cat = mainViewModel.getCatLiveData().getValue();
                         if(cat == null) return;
                         byte[] gifByte = cat.catGif;
-                        File dir = new File(Environment.getExternalStorageDirectory(), "/cat");
-                        if(!dir.exists())dir.mkdir();
-                        File file = new File(dir, "temp_to_share.gif");
+                        File file = new File(Environment.getExternalStorageDirectory(), "/cat/share");
+                        if(!file.exists()) file.mkdirs();
+                        file = new File(file, "temp_to_share.gif");
+                        if(file.exists()) file.delete();
                         file.createNewFile();
                         FileOutputStream fileOutputStream = new FileOutputStream(file);
                         fileOutputStream.write(gifByte);
-                        Intent intent = new Intent(Intent.ACTION_SEND);
-                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-                        intent.setType("image/gif");
-                        startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
                         fileOutputStream.close();
                         emitter.onSuccess(file);
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe();
-
+                .subscribe(new Consumer<File>() {
+                    @Override
+                    public void accept(File file) {
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+                        intent.setType("image/gif");
+                        startActivity(Intent.createChooser(intent, getResources().getText(R.string.action_share)));
+                    }
+                });
     }
 
 }
